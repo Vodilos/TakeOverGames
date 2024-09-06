@@ -1,0 +1,53 @@
+{
+    "type": "reward-redeemed",
+    "data": {
+        "timestamp": "2024-07-21T18: 00: 12.417678772Z",
+        "redemption": {
+            "id": "---",
+            "user": {
+                "id": "-----",
+                "login": "vodilos_",
+                "display_name": "Vodilos_"
+            },
+            "channel_id": "-----",
+            "redeemed_at": "2024-07-21T18: 00: 12.417678772Z",
+            "reward": {
+                "id": "-----",
+                "channel_id": "-----",
+                "title": "test",
+                "prompt": "test description",
+                "cost": 5000,
+                "is_user_input_required": false,
+                "is_sub_only": false,
+                "image": null,
+                "default_image": {
+                    "url_1x": "-",
+                    "url_2x": "-",
+                    "url_4x": "-"
+                },
+                "background_color": "#BD0078",
+                "is_enabled": true,
+                "is_paused": false,
+                "is_in_stock": true,
+                "max_per_stream": {
+                    "is_enabled": false,
+                    "max_per_stream": 0
+                },
+                "should_redemptions_skip_request_queue": false,
+                "template_id": null,
+                "updated_for_indicator_at": "2024-07-21T17: 59: 44.606949324Z",
+                "max_per_user_per_stream": {
+                    "is_enabled": false,
+                    "max_per_user_per_stream": 0
+                },
+                "global_cooldown": {
+                    "is_enabled": false,
+                    "global_cooldown_seconds": 0
+                },
+                "redemptions_redeemed_current_stream": null,
+                "cooldown_expires_at": null
+            },
+            "status": "UNFULFILLED"
+        }
+    }
+}
