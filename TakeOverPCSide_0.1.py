@@ -13,9 +13,6 @@ from twitchAPI.twitch import Twitch
 from twitchAPI.oauth import UserAuthenticator
 from twitchAPI.type import AuthScope
 from twitchAPI.pubsub  import PubSub
-# from twitchio.ext import pubsub
-
-# TODO: Zkusit to přepsat na twitchio možná nekdy pozdej
 
 keyboard = pynput.keyboard.Controller()
 mouse = pynput.mouse.Controller()
@@ -35,6 +32,9 @@ def is_file_created(setting=0):
 
             app_secret_token = input("Application secret from twitch: ")
             set_key(name_file, "APP_SECRET", app_secret_token)
+
+            twtich_username = input("Input your login username: ")
+            set_key(name_file, "USERNAME", twtich_username)
 
             is_file_created()
     if setting == 1:
@@ -57,18 +57,19 @@ def load_dotenv_file():
     load_dotenv()
     APP_ID = os.getenv('APP_ID')
     APP_SECRET = os.getenv('APP_SECRET')
+    TWITCH_USERNAME = os.getenv('USERNAME')
     
     loop = asyncio.get_event_loop()
     
     if loop.is_running():
-        asyncio.ensure_future(twitch_auth(APP_ID, APP_SECRET))
+        asyncio.ensure_future(twitch_auth(APP_ID, APP_SECRET, TWITCH_USERNAME))
     else:
-        loop.run_until_complete(twitch_auth(APP_ID, APP_SECRET))
+        loop.run_until_complete(twitch_auth(APP_ID, APP_SECRET, TWITCH_USERNAME))
 
-async def twitch_auth(app_id, app_secret):
+async def twitch_auth(app_id, app_secret, twitch_username):
     twitch = await Twitch(app_id,app_secret)   
 
-    user = await first(twitch.get_users(logins='vodilos_'))
+    user = await first(twitch.get_users(logins=twitch_username))
 
     target_scope = [AuthScope.CHANNEL_MANAGE_REDEMPTIONS, AuthScope.CHANNEL_READ_REDEMPTIONS]
     
@@ -76,7 +77,6 @@ async def twitch_auth(app_id, app_secret):
     token, refresh_token = await auth.authenticate()
 
     await twitch.set_user_authentication(token, target_scope, refresh_token)  
-    print(user.id)
 
     await Main(user.id, twitch)
 
@@ -196,150 +196,51 @@ async def Mouse_button(button:int = 1, clicks:int = 1):
     elif button == 3:
         mouse.click(Button.middle, clicks)
 
-async def Valorant_rewards_enb(userid, twitch_tokens):
-    #Poslední možná změnit pak na true abych neměl zajebanout frontu ve rewards
-    reward_price = 50
-    cooldown = 2
-    
-    Jump_valo = await twitch_tokens.create_custom_reward(userid, "Vyskoč", reward_price, "Automaticky vyskočím ve hře", True, "#06D001", is_global_cooldown_enabled = True, global_cooldown_seconds = cooldown)
-    Drop_valo = await twitch_tokens.create_custom_reward(userid, "Vyhoď zbraň", reward_price, "Automaticky vyhodí zbraň ve hře", True, "#06D001", is_global_cooldown_enabled = True, global_cooldown_seconds = cooldown)
-    Knife_valo = await twitch_tokens.create_custom_reward(userid, "Dej mi nůž do ruky", reward_price, "Automaticky mi to switchne na nůž ve hře", "#06D001", is_global_cooldown_enabled = True, global_cooldown_seconds = cooldown)
-
-    pubsub = PubSub(twitch_tokens)
-    pubsub.start()
-
-    uuid = await pubsub.listen_channel_points(userid, Reward_logic_redemption_valo)
-
-    print("Valo rewards zapnutý")
-    print("Napíš cokoliv pro vypnutí valo rewards")
-
-    # Quit systém
-    input()
-    
-    print("Jsi si jístí Y/N")
-    
-    while True:
-        userInput = input()
-
-        if userInput == "Y":
-            pubsub.stop()
-            await quit_sys(userid, twitch_tokens)
-
-# Nejvíc špagety kod co tady asi je xD
-async def Reward_logic_redemption_valo(uuid: UUID, data: dict) -> None:
-    
-    print(str(uuid))
-    # Debug zpráva kdyžtak viz type.json
-    # print(data)
-
-    title = data['data']['redemption']['reward'] 
-
-    if title['title'] == "Vyskoč":
-        print("Vyskočím")
-        keyboard.press(Key.space)
-        keyboard.release(Key.space)
-
-    elif title['title'] == "Vyhoď zbraň":
-        print("Vyhazuju")
-        keyboard.press('g')
-        keyboard.release('g')
-
-    elif title['title'] == "Dej mi nůž do ruky":
-        print("Switchuji")
-        keyboard.press('š')
-        keyboard.press('3')
-
-        keyboard.release('3')
-        keyboard.release('š')
-        
-async def MC_rewards_enb(userid, twitch_tokens):
-    #Poslední možná změnit pak na true abych neměl zajebanout frontu ve rewards
-    reward_price = 5
-    cooldown = 2
-
-    Jump_mc = await twitch_tokens.create_custom_reward(userid, "Zasekuntý mezerník", reward_price, "Zasekneš mi mezerkní na pět sekund", True, "#06D001", is_global_cooldown_enabled = True, global_cooldown_seconds = cooldown)
-    Drop_mc = await twitch_tokens.create_custom_reward(userid, "Vyhoď mi to z inv", reward_price, "Vyhodíš mi aktualní item z ruky", True, "#06D001", is_global_cooldown_enabled = True, global_cooldown_seconds = cooldown)
-    Spin_mc = await twitch_tokens.create_custom_reward(userid, "Zatoč se", reward_price, "Roztočíš mě na pět sekund ingame", True, "#06D001", is_global_cooldown_enabled = True, global_cooldown_seconds = cooldown)
-    Attack_mc = await twitch_tokens.create_custom_reward(userid, "Záutoč", reward_price, "Použiješ kliknutí myši", True, "#06D001", is_global_cooldown_enabled = True, global_cooldown_seconds = cooldown)
-    Keyboard_mc = await twitch_tokens.create_custom_reward(userid, "Zmačkni něco na klávesnici", reward_price, "Napiš jakokoliv klávesu (ALT+F4 mám 5% šanci na zmáčknutí. Klávesy Shift,CTRL,Alt a F1-F12 fungují ALE Space nefunguje :( ) na ČESKÉ klávesnici např: w zmáčkne w na mé klavesnic když napíše víc kláves bude se brát pouze ta první", True, "#06D001", True, is_global_cooldown_enabled = True, global_cooldown_seconds = cooldown)
-    Chat_mc = await twitch_tokens.create_custom_reward(userid, "Napiš něco do in-game chatu", reward_price, "Napiš něco do in-game chatu PS: Do chatu se napiš kdo to napsal jako tvůj nick", True, "#06D001", True, is_global_cooldown_enabled = True, global_cooldown_seconds = cooldown)
-    
-    pubsub = PubSub(twitch_tokens)
-    pubsub.start()
-
-    uuid = await pubsub.listen_channel_points(userid, Reward_logic_redemption_MC)
-
-    print("MC rewards zapnutý")
-    print("Hlavně dej Raw input: off - v mc")
-    print("Napíš cokoliv pro vypnutí MC rewards")
-
-    # Quit systém
-    input()
-    
-    print("Jsi si jístí Y/N")
-    
-    while True:
-        userInput = input()
-
-        if userInput == "Y":
-            pubsub.stop()
-            await quit_sys(userid, twitch_tokens)
-
-async def Reward_logic_redemption_MC(uuid: UUID, data: dict) -> None:
-    
-    print(str(uuid))
-    # Debug zpráva kdyžtak viz type.json
-    # print(data)
-
+async def Reward_logic_example(uuid: UUID, data: dict) -> None:
     redepmtion = data['data']['redemption']
     title = redepmtion['reward']
 
-    if title['title'] == "Zasekuntý mezerník":
+    if title['title'] == "space":
         await Press_key_repeat("space", 5)
 
-    elif title['title'] == "Vyhoď mi to z inv":
+    elif title['title'] == "press key":
         await Press_key("q")
 
-    elif title['title'] == "Zatoč se":
+    elif title['title'] == "spin me":
         await Spin_me(5)
 
-    elif title['title'] == "Záutoč":
+    elif title['title'] == "click mouse":
         await Mouse_button(1, 1)
     
-    elif title['title'] == "Napiš něco do in-game chatu":
+    elif title['title'] == "typing user input":
         await Typing(redepmtion)
 
-    elif title['title'] == "Zmačkni něco na klávesnici":
+    elif title['title'] == "keyboard user input":
         await Press_key_user_input(redepmtion, 5)
 
-async def quit_sys(userid, twitch_tokens):
-            get_rewards = await twitch_tokens.get_custom_reward(userid, only_manageable_rewards=True)
-            
-            # Možná přidat systém na verfikaci jmen odměn
-            for reward in get_rewards:
-                    print("Reward deleted")
-                    await twitch_tokens.delete_custom_reward(userid, reward.id)
-            await Main(userid, twitch_tokens)
-
-async def test_playground(userid, twitch_tokens):
-    #Poslední možná změnit pak na true abych neměl zajebanout frontu ve rewards
+async def Example_rewards(userid, twitch_tokens):
     reward_price = 50
     cooldown = 2
-    Test_1 = await twitch_tokens.create_custom_reward(userid, "TEST", reward_price, "Test", True, "#06D001",  is_global_cooldown_enabled = True, global_cooldown_seconds = cooldown)
-    Test_2 = await twitch_tokens.create_custom_reward(userid, "TEST2", reward_price, "Test2", True, "#06D001",  is_global_cooldown_enabled = True, global_cooldown_seconds = cooldown)
+    
+    space = await twitch_tokens.create_custom_reward(userid, "space", reward_price, "space description", True, "#06D001",  is_global_cooldown_enabled = True, global_cooldown_seconds = cooldown)
+    press_key = await twitch_tokens.create_custom_reward(userid, "press key", reward_price, "press key description", True, "#06D001",  is_global_cooldown_enabled = True, global_cooldown_seconds = cooldown)
+    spin_me = await twitch_tokens.create_custom_reward(userid, "spin me", reward_price, "spin me description", True, "#06D001",  is_global_cooldown_enabled = True, global_cooldown_seconds = cooldown)
+    click_mouse = await twitch_tokens.create_custom_reward(userid, "click mouse", reward_price, "click mouse description", True, "#06D001",  is_global_cooldown_enabled = True, global_cooldown_seconds = cooldown)
+    typing = await twitch_tokens.create_custom_reward(userid, "typing user input", reward_price, "typing with user input description", True, "#06D001", True, is_global_cooldown_enabled = True, global_cooldown_seconds = cooldown)
+    keyboard_user_input = await twitch_tokens.create_custom_reward(userid, "keyboard user input", reward_price, "keyboard with user input description", True, "#06D001", True, is_global_cooldown_enabled = True, global_cooldown_seconds = cooldown)
 
     pubsub = PubSub(twitch_tokens)
     pubsub.start()
 
-    uuid = await pubsub.listen_channel_points(userid, Reward_logic_redemption_valo)
+    uuid = await pubsub.listen_channel_points(userid, Reward_logic_example)
 
-    print("Test playground rewards zapnutý")
-    print("Napíš cokoliv pro vypnutí Test playground rewards")
+    print("Rewards are active")
+    print("Type anything to trun off rewards")
 
     # Quit systém
     input()
     
-    print("Jsi si jístí Y/N")
+    print("Are you sure Y/N")
     
     while True:
         userInput = input()
@@ -348,13 +249,20 @@ async def test_playground(userid, twitch_tokens):
             pubsub.stop()
             await quit_sys(userid, twitch_tokens)
 
+async def quit_sys(userid, twitch_tokens):
+    get_rewards = await twitch_tokens.get_custom_reward(userid, only_manageable_rewards=True)
+            
+    for reward in get_rewards:
+            print("Reward deleted")
+            await twitch_tokens.delete_custom_reward(userid, reward.id)
+    await Main(userid, twitch_tokens)
+
 async def Main(userid, twitch_tokens):
-    print("Testovni python program možná to pak napíšu v C# idk?")
+    print("TakeOverGames")
 
     print("1 - Manual Auth")
     print("2 - Settings")
-    print("3 - Valo")
-    print("4 - MC")
+    print("3 - Example_rewards")
     print("99 - Quit")
 
     userInput = int(input())
@@ -364,11 +272,7 @@ async def Main(userid, twitch_tokens):
     elif userInput == 2:
         is_file_created(setting=1)
     elif userInput == 3:
-        await Valorant_rewards_enb(userid, twitch_tokens)
-    elif userInput == 4:
-        await MC_rewards_enb(userid, twitch_tokens)
-    elif userInput == 98:
-        await test_playground(userid, twitch_tokens)
+        await Example_rewards(userid, twitch_tokens)
     elif userInput == 99:
         quit(0)
     else:
@@ -377,6 +281,3 @@ async def Main(userid, twitch_tokens):
 
 if __name__ == '__main__':
     is_file_created()
-# TODO: Upravit program aby se nevypnál hned po zemění tvojí settings
-# TODO: Udělat nastavení v programu aby se kvůli coldown nemusel restartovat program
-# TODO: Spawnování mobek
